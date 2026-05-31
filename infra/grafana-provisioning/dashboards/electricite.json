@@ -1,0 +1,431 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "title": "MonElec - Suivi Consommation",
+  "version": 3,
+  "timezone": "Europe/Paris",
+  "schemaVersion": 39,
+  "tags": ["monelec", "electricite"],
+  "refresh": "5m",
+  "time": { "from": "now-24h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "id": 2,
+      "title": "Puissance",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 0, "y": 1 },
+      "datasource": "InfluxDB",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "" },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 3000 },
+              { "color": "red", "value": 6000 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "query": "from(bucket: \"electricite\")\n  |> range(start: -10m)\n  |> filter(fn: (r) => r._measurement == \"electricite_index\")\n  |> filter(fn: (r) => r._field == \"valeur\")\n  |> difference()\n  |> filter(fn: (r) => r._value >= 0)\n  |> map(fn: (r) => ({ r with _value: r._value * 60.0 }))\n  |> sum()\n  |> yield(name: \"total\")",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Aujourd'hui",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 4, "y": 1 },
+      "datasource": "InfluxDB",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "" },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kWh",
+          "decimals": 1
+        }
+      },
+      "targets": [
+        {
+          "query": "from(bucket: \"electricite\")\n  |> range(start: today())\n  |> filter(fn: (r) => r._measurement == \"electricite_index\")\n  |> filter(fn: (r) => r._field == \"valeur\")\n  |> increase()\n  |> filter(fn: (r) => r._value >= 0)\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: r._value / 1000.0 }))\n  |> yield(name: \"today\")",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Ce mois",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 8, "y": 1 },
+      "datasource": "InfluxDB",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "" },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kWh",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1500 },
+              { "color": "red", "value": 2500 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "query": "from(bucket: \"electricite\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"electricite_index\")\n  |> filter(fn: (r) => r._field == \"valeur\")\n  |> increase()\n  |> filter(fn: (r) => r._value >= 0)\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: r._value / 1000.0 }))\n  |> yield(name: \"month\")",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Index total",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 12, "y": 1 },
+      "datasource": "InfluxDB",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "" },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kWh",
+          "decimals": 0
+        }
+      },
+      "targets": [
+        {
+          "query": "from(bucket: \"electricite\")\n  |> range(start: -7d)\n  |> filter(fn: (r) => r._measurement == \"electricite_index\")\n  |> filter(fn: (r) => r._field == \"valeur\")\n  |> last()\n  |> group()\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: r._value / 1000.0 }))\n  |> yield(name: \"total\")",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Tarif",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 16, "y": 1 },
+      "datasource": "InfluxDB",
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "" },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "query": "from(bucket: \"electricite\")\n  |> range(start: -10m)\n  |> filter(fn: (r) => r._measurement == \"electricite_index\")\n  |> filter(fn: (r) => r._field == \"valeur\")\n  |> difference()\n  |> filter(fn: (r) => r._value > 0)\n  |> last()\n  |> keep(columns: [\"tarif_label\"])\n  |> yield(name: \"tarif\")",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 4 }
+    },
+    {
+      "id": 8,
+      "title": "Puissance en direct (pas 1 min - 24h)",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 5 },
+      "datasource": "InfluxDB",
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["mean", "max", "last"]
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "watt",
+          "decimals": 0,
+          "custom": {
+            "showPoints": "never",
+            "lineInterpolation": "stepAfter",
+            "fillOpacity": 30,
+            "stacking": { "mode": "normal" }
+          }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Jour Bleu H. Creuse" }, "properties": [{ "id": "color", "value": { "fixed": "#00FFFF" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Bleu H. Pleine" }, "properties": [{ "id": "color", "value": { "fixed": "#0000FF" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Blanc H. Creuse" }, "properties": [{ "id": "color", "value": { "fixed": "#00FF00" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Blanc H. Pleine" }, "properties": [{ "id": "color", "value": { "fixed": "#8A2BE2" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Rouge H. Creuse" }, "properties": [{ "id": "color", "value": { "fixed": "#FF4500" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Rouge H. Pleine" }, "properties": [{ "id": "color", "value": { "fixed": "#FF0000" } }] }
+        ]
+      },
+      "targets": [
+        {
+          "query": "from(bucket: \"electricite\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r._measurement == \"electricite_index\")\n  |> filter(fn: (r) => r._field == \"valeur\")\n  |> difference()\n  |> filter(fn: (r) => r._value >= 0)\n  |> map(fn: (r) => ({ r with _value: r._value * 60.0 }))\n  |> pivot(rowKey:[\"_time\"], columnKey:[\"tarif_label\"], valueColumn:\"_value\")\n  |> yield(name: \"power\")",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 15 }
+    },
+    {
+      "id": 10,
+      "title": "Consommation par jour (mois en cours) — vue site D2L",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 16 },
+      "datasource": "InfluxDB",
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["sum"]
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kWh",
+          "decimals": 1,
+          "custom": {
+            "showPoints": "never",
+            "barAlignment": 0,
+            "fillOpacity": 80,
+            "stacking": { "mode": "normal" },
+            "lineWidth": 0
+          }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Jour Bleu H. Creuse" }, "properties": [{ "id": "color", "value": { "fixed": "#00FFFF" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Bleu H. Pleine" }, "properties": [{ "id": "color", "value": { "fixed": "#0000FF" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Blanc H. Creuse" }, "properties": [{ "id": "color", "value": { "fixed": "#00FF00" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Blanc H. Pleine" }, "properties": [{ "id": "color", "value": { "fixed": "#8A2BE2" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Rouge H. Creuse" }, "properties": [{ "id": "color", "value": { "fixed": "#FF4500" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Rouge H. Pleine" }, "properties": [{ "id": "color", "value": { "fixed": "#FF0000" } }] }
+        ]
+      },
+      "targets": [
+        {
+          "query": "from(bucket: \"electricite\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"electricite_index\")\n  |> filter(fn: (r) => r._field == \"valeur\")\n  |> window(every: 1d)\n  |> increase(columns: [\"_value\"])\n  |> last()\n  |> duplicate(column: \"_start\", as: \"_time\")\n  |> window(every: inf)\n  |> filter(fn: (r) => r._value > 0)\n  |> map(fn: (r) => ({ r with _value: r._value / 1000.0 }))\n  |> yield(name: \"daily\")",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Consommation par mois (année en cours) — vue site D2L",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 16 },
+      "datasource": "InfluxDB",
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["sum"]
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kWh",
+          "decimals": 1,
+          "custom": {
+            "showPoints": "never",
+            "barAlignment": 0,
+            "fillOpacity": 80,
+            "stacking": { "mode": "normal" },
+            "lineWidth": 0
+          }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Jour Bleu H. Creuse" }, "properties": [{ "id": "color", "value": { "fixed": "#00FFFF" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Bleu H. Pleine" }, "properties": [{ "id": "color", "value": { "fixed": "#0000FF" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Blanc H. Creuse" }, "properties": [{ "id": "color", "value": { "fixed": "#00FF00" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Blanc H. Pleine" }, "properties": [{ "id": "color", "value": { "fixed": "#8A2BE2" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Rouge H. Creuse" }, "properties": [{ "id": "color", "value": { "fixed": "#FF4500" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Rouge H. Pleine" }, "properties": [{ "id": "color", "value": { "fixed": "#FF0000" } }] }
+        ]
+      },
+      "targets": [
+        {
+          "query": "from(bucket: \"electricite\")\n  |> range(start: -1y)\n  |> filter(fn: (r) => r._measurement == \"electricite_index\")\n  |> filter(fn: (r) => r._field == \"valeur\")\n  |> window(every: 1mo)\n  |> increase(columns: [\"_value\"])\n  |> last()\n  |> duplicate(column: \"_start\", as: \"_time\")\n  |> window(every: inf)\n  |> filter(fn: (r) => r._value > 0)\n  |> map(fn: (r) => ({ r with _value: r._value / 1000.0 }))\n  |> yield(name: \"monthly\")",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 }
+    },
+    {
+      "id": 13,
+      "title": "Consommation par année — vue site D2L",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 27 },
+      "datasource": "InfluxDB",
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": ["sum"]
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kWh",
+          "decimals": 0,
+          "custom": {
+            "showPoints": "never",
+            "barAlignment": 0,
+            "fillOpacity": 80,
+            "stacking": { "mode": "normal" },
+            "lineWidth": 0
+          }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Jour Bleu H. Creuse" }, "properties": [{ "id": "color", "value": { "fixed": "#00FFFF" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Bleu H. Pleine" }, "properties": [{ "id": "color", "value": { "fixed": "#0000FF" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Blanc H. Creuse" }, "properties": [{ "id": "color", "value": { "fixed": "#00FF00" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Blanc H. Pleine" }, "properties": [{ "id": "color", "value": { "fixed": "#8A2BE2" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Rouge H. Creuse" }, "properties": [{ "id": "color", "value": { "fixed": "#FF4500" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Rouge H. Pleine" }, "properties": [{ "id": "color", "value": { "fixed": "#FF0000" } }] }
+        ]
+      },
+      "targets": [
+        {
+          "query": "from(bucket: \"electricite\")\n  |> range(start: -10y)\n  |> filter(fn: (r) => r._measurement == \"electricite_index\")\n  |> filter(fn: (r) => r._field == \"valeur\")\n  |> window(every: 1y)\n  |> increase(columns: [\"_value\"])\n  |> last()\n  |> duplicate(column: \"_start\", as: \"_time\")\n  |> window(every: inf)\n  |> filter(fn: (r) => r._value > 0)\n  |> map(fn: (r) => ({ r with _value: r._value / 1000.0 }))\n  |> yield(name: \"yearly\")",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "title": "Répartition par tarif",
+      "type": "bargauge",
+      "gridPos": { "h": 10, "w": 6, "x": 12, "y": 27 },
+      "datasource": "InfluxDB",
+      "options": {
+        "orientation": "horizontal",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "kWh",
+          "decimals": 0,
+          "min": 0,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "#00FFFF", "value": null },
+              { "color": "#00FFFF", "value": 0 }
+            ]
+          }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Jour Bleu H. Creuse" }, "properties": [{ "id": "color", "value": { "fixed": "#00FFFF" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Bleu H. Pleine" }, "properties": [{ "id": "color", "value": { "fixed": "#0000FF" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Blanc H. Creuse" }, "properties": [{ "id": "color", "value": { "fixed": "#00FF00" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Blanc H. Pleine" }, "properties": [{ "id": "color", "value": { "fixed": "#8A2BE2" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Rouge H. Creuse" }, "properties": [{ "id": "color", "value": { "fixed": "#FF4500" } }] },
+          { "matcher": { "id": "byName", "options": "Jour Rouge H. Pleine" }, "properties": [{ "id": "color", "value": { "fixed": "#FF0000" } }] }
+        ]
+      },
+      "targets": [
+        {
+          "query": "from(bucket: \"electricite\")\n  |> range(start: -1y)\n  |> filter(fn: (r) => r._measurement == \"electricite_index\")\n  |> filter(fn: (r) => r._field == \"valeur\")\n  |> last()\n  |> map(fn: (r) => ({ r with _value: r._value / 1000.0 }))\n  |> keep(columns: [\"_value\", \"tarif_label\"])\n  |> group()\n  |> pivot(rowKey:[\"_time\"], columnKey:[\"tarif_label\"], valueColumn:\"_value\")\n  |> yield(name: \"index\")",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "title": "Coût estimé (mois)",
+      "type": "gauge",
+      "gridPos": { "h": 10, "w": 6, "x": 18, "y": 27 },
+      "datasource": "InfluxDB",
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "" },
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "€",
+          "decimals": 0,
+          "min": 0,
+          "max": 400,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 150 },
+              { "color": "red", "value": 300 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "query": "from(bucket: \"electricite\")\n  |> range(start: -30d)\n  |> filter(fn: (r) => r._measurement == \"electricite_index\")\n  |> filter(fn: (r) => r._field == \"valeur\")\n  |> increase()\n  |> filter(fn: (r) => r._value >= 0)\n  |> sum()\n  |> map(fn: (r) => ({ r with _value: r._value / 1000.0 * 0.25 }))\n  |> yield(name: \"cout\")",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

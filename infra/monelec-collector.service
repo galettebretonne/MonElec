@@ -1,0 +1,11 @@
+[Unit]
+Description=MonElec - D2L electricity data collector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/manu/Develop/MonElec/.venv/bin/python3 /home/manu/Develop/MonElec/src/collector.py --influx
+WorkingDirectory=/home/manu/Develop/MonElec
+EnvironmentFile=/home/manu/Develop/MonElec/.env
+User=manu

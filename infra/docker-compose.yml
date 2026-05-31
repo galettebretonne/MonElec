@@ -1,0 +1,35 @@
+services:
+  influxdb:
+    image: influxdb:2.7
+    container_name: monelec-influxdb
+    ports:
+      - "8087:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: admin1234
+      DOCKER_INFLUXDB_INIT_ORG: monelec
+      DOCKER_INFLUXDB_INIT_BUCKET: electricite
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: my-token
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: monelec-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana-provisioning:/etc/grafana/provisioning
+    depends_on:
+      - influxdb
+    restart: unless-stopped
+
+volumes:
+  influxdb-data:
+  grafana-data:
